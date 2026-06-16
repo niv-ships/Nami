@@ -540,7 +540,9 @@ async function renderBotMessage(text) {
         placeholder.parentNode.replaceChild(card, placeholder);
       }
     } catch (e) {
-      placeholder.textContent = `${title} — couldn't load details, but trust Nami on this one!`;
+      if (placeholder.parentNode) {
+        placeholder.textContent = `⚠️ ${title} — ${e.message || 'could not load'}`;
+      }
     }
     chatBox.scrollTop = chatBox.scrollHeight;
   }));
