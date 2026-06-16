@@ -295,8 +295,6 @@
       <div class="landing-title">Find your next obsession</div>
       <div class="landing-sub">Tell Nami how you're feeling and she'll find exactly what you need to watch tonight.</div>
       <div class="key-section">
-        <div class="key-label">Anthropic API Key</div>
-        <input class="key-input" type="password" id="apiKey" placeholder="sk-ant-..." />
         <button class="start-btn" onclick="startChat()">Start chatting with Nami ✨</button>
         <div class="error-msg" id="landingError"></div>
       </div>
@@ -441,87 +439,120 @@ async function callClaude() {
   }
 }
 
-// Parse reply — split into text parts and anime titles
+// Parse reply — interleave description bubbles with cards
 async function renderBotMessage(text) {
   const chatBox = document.getElementById('chatBox');
-  const wrapper = document.createElement('div');
-  wrapper.className = 'msg-wrapper bot';
-
-  const label = document.createElement('div');
-  label.className = 'msg-label';
-  label.textContent = 'nami';
-  wrapper.appendChild(label);
 
   // Split on [ANIME: ...] tokens
+  // Result: [textBefore, title1, textAfter1, title2, textAfter2, ...]
   const parts = text.split(/\[ANIME:\s*(.+?)\]/g);
-  // parts = [textBefore, title1, textAfter1, title2, textAfter2, ...]
 
-  const animeTitles = [];
-
-  for (let i = 0; i < parts.length; i++) {
-    if (i % 2 === 0) {
-      // Text part
-      const cleaned = parts[i].trim();
-      if (cleaned) {
-        const bubble = document.createElement('div');
-        bubble.className = 'bubble bot';
-        bubble.textContent = cleaned;
-        wrapper.appendChild(bubble);
-      }
-    } else {
-      // Anime title
-      animeTitles.push(parts[i].trim());
-    }
+  // Render the opening text (before first anime) as a single bot message
+  const openingText = parts[0].trim();
+  if (openingText) {
+    const wrapper = document.createElement('div');
+    wrapper.className = 'msg-wrapper bot';
+    const label = document.createElement('div');
+    label.className = 'msg-label';
+    label.textContent = 'nami';
+    const bubble = document.createElement('div');
+    bubble.className = 'bubble bot';
+    bubble.textContent = openingText;
+    wrapper.appendChild(label);
+    wrapper.appendChild(bubble);
+    chatBox.appendChild(wrapper);
   }
 
-  chatBox.appendChild(wrapper);
+  // Now interleave: for each anime, show its description bubble then its card
+  const pairs = []; // [{title, description}]
+  for (let i = 1; i < parts.length; i += 2) {
+    const title = parts[i].trim();
+    const description = (parts[i + 1] || '').trim();
+    pairs.push({ title, description });
+  }
 
-  // If there are anime titles, fetch cards
-  if (animeTitles.length > 0) {
-    const cardsWrapper = document.createElement('div');
-    cardsWrapper.className = 'anime-cards';
+  // Render each pair: description bubble first, then loading card, then real card
+  for (let i = 0; i < pairs.length; i++) {
+    const { title, description } = pairs[i];
 
-    // Show loading placeholders
-    animeTitles.forEach(title => {
-      const placeholder = document.createElement('div');
-      placeholder.className = 'card-loading';
-      placeholder.textContent = `🔍 Looking up ${title}...`;
-      cardsWrapper.appendChild(placeholder);
-    });
+    // Description bubble
+    if (description) {
+      // Strip trailing "want more?" type lines — those are closing text, not descriptions
+      // Only show lines that feel like a description (not questions)
+      const descLines = description.split('\n').filter(l => l.trim());
+      const actualDesc = descLines.filter(l => !l.match(/^(any|want|let me|did|seen|sound)/i)).join('\n').trim();
+      const closingText = descLines.filter(l => l.match(/^(any|want|let me|did|seen|sound)/i)).join('\n').trim();
 
-    chatBox.appendChild(cardsWrapper);
+      if (actualDesc) {
+        const wrapper = document.createElement('div');
+        wrapper.className = 'msg-wrapper bot';
+        if (i === 0 && !openingText) {
+          const label = document.createElement('div');
+          label.className = 'msg-label';
+          label.textContent = 'nami';
+          wrapper.appendChild(label);
+        }
+        const bubble = document.createElement('div');
+        bubble.className = 'bubble bot';
+        bubble.textContent = actualDesc;
+        wrapper.appendChild(bubble);
+        chatBox.appendChild(wrapper);
+      }
+
+      // If last pair, show closing text separately
+      if (i === pairs.length - 1 && closingText) {
+        setTimeout(() => {
+          const wrapper = document.createElement('div');
+          wrapper.className = 'msg-wrapper bot';
+          const bubble = document.createElement('div');
+          bubble.className = 'bubble bot';
+          bubble.textContent = closingText;
+          wrapper.appendChild(bubble);
+          chatBox.appendChild(wrapper);
+          chatBox.scrollTop = chatBox.scrollHeight;
+        }, pairs.length * 500 + 200);
+      }
+    }
+
+    // Loading placeholder card
+    const placeholder = document.createElement('div');
+    placeholder.className = 'card-loading';
+    placeholder.textContent = `🔍 Looking up ${title}...`;
+    chatBox.appendChild(placeholder);
     chatBox.scrollTop = chatBox.scrollHeight;
 
-    // Fetch each anime from Jikan (MAL) API
-    for (let i = 0; i < animeTitles.length; i++) {
-      const title = animeTitles[i];
-      const placeholder = cardsWrapper.children[i];
-      try {
-        const card = await fetchAnimeCard(title);
-        cardsWrapper.replaceChild(card, placeholder);
-      } catch (e) {
-        placeholder.textContent = `Could not find "${title}" on MAL`;
-      }
-      // Small delay to respect Jikan rate limit (3 req/sec)
-      if (i < animeTitles.length - 1) await sleep(400);
+    // Fetch real card
+    try {
+      await sleep(i === 0 ? 0 : 450); // rate limit Jikan
+      const card = await fetchAnimeCard(title);
+      chatBox.replaceChild(card, placeholder);
+    } catch (e) {
+      placeholder.textContent = `${title} — couldn't load details, but trust Nami on this one!`;
     }
+
+    chatBox.scrollTop = chatBox.scrollHeight;
   }
 
   chatBox.scrollTop = chatBox.scrollHeight;
 }
 
 async function fetchAnimeCard(title) {
-  const url = `https://api.jikan.moe/v4/anime?q=${encodeURIComponent(title)}&limit=1&sfw=true`;
+  // Search with TV type preference to avoid music videos etc
+  const url = `https://api.jikan.moe/v4/anime?q=${encodeURIComponent(title)}&limit=5&sfw=true`;
   const res = await fetch(url);
   const data = await res.json();
 
-  const anime = data.data && data.data[0];
+  // Prefer TV/Movie results over music/specials
+  const results = data.data || [];
+  const anime = results.find(a => ['TV', 'Movie', 'OVA'].includes(a.type)) || results[0];
 
   const card = document.createElement('div');
   card.className = 'anime-card';
+  card.style.cursor = 'pointer';
 
   if (!anime) {
-    card.innerHTML = `<div class="anime-info"><div class="anime-title">${title}</div><div style="font-size:11px;color:rgba(255,255,255,0.3);margin-top:4px;">Couldn't find on MAL — but trust Nami on this one!</div></div>`;
+    card.innerHTML = `<div class="anime-info"><div class="anime-title">${title}</div><div style="font-size:11px;color:rgba(255,255,255,0.3);margin-top:4px;">Couldn't find on MAL — but trust Nami on this one!</div><div style="font-size:11px;color:rgba(99,179,237,0.7);margin-top:4px;">Tap to ask Nami where to watch 👆</div></div>`;
+    card.onclick = () => askNamiAboutStreaming(title);
     return card;
   }
 
@@ -532,6 +563,7 @@ async function fetchAnimeCard(title) {
   const genres = (anime.genres || []).slice(0, 3).map(g => g.name);
   const malUrl = anime.url;
   const displayTitle = anime.title_english || anime.title;
+  const jwUrl = `https://www.justwatch.com/in/search?q=${encodeURIComponent(displayTitle)}`;
 
   card.innerHTML = `
     ${coverUrl
@@ -546,12 +578,39 @@ async function fetchAnimeCard(title) {
         ${type ? `<span class="anime-badge badge-type">${type}</span>` : ''}
       </div>
       ${genres.length ? `<div class="anime-genres">${genres.map(g => `<span class="genre-tag">${g}</span>`).join('')}</div>` : ''}
-      ${malUrl ? `<a class="anime-mal-link" href="${malUrl}" target="_blank">View on MAL →</a>` : ''}
-      <a class="anime-mal-link" href="https://www.justwatch.com/in/search?q=${encodeURIComponent(displayTitle)}" target="_blank" style="color:rgba(99,179,237,0.8);">🎬 Where to watch in India →</a>
+      <div style="display:flex; gap:10px; margin-top:4px; flex-wrap:wrap;">
+        ${malUrl ? `<a class="anime-mal-link" href="${malUrl}" target="_blank" onclick="event.stopPropagation()">View on MAL →</a>` : ''}
+        <a class="anime-mal-link" href="${jwUrl}" target="_blank" onclick="event.stopPropagation()" style="color:rgba(99,179,237,0.8);">🎬 JustWatch →</a>
+      </div>
+      <div style="font-size:10px;color:rgba(255,255,255,0.25);margin-top:4px;">Tap card to ask Nami where to stream 👆</div>
     </div>
   `;
 
+  // Tapping the card asks Nami about streaming
+  card.onclick = (e) => {
+    if (e.target.tagName === 'A') return; // don't intercept link clicks
+    askNamiAboutStreaming(displayTitle);
+  };
+
   return card;
+}
+
+// Silently sends a streaming question to Nami on behalf of the user
+async function askNamiAboutStreaming(title) {
+  const question = `Where can I stream ${title} in India?`;
+  addBubble('user', question);
+  conversationHistory.push({ role: 'user', content: question });
+
+  document.getElementById('sendBtn').disabled = true;
+  showThinking();
+  const reply = await callClaude();
+  hideThinking();
+  document.getElementById('sendBtn').disabled = false;
+
+  if (reply) {
+    conversationHistory.push({ role: 'assistant', content: reply });
+    await renderBotMessage(reply);
+  }
 }
 
 function sleep(ms) { return new Promise(r => setTimeout(r, ms)); }
