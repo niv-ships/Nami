@@ -480,13 +480,14 @@ async function renderBotMessage(text) {
   }
 
   // Render each pair: description bubble first, then loading card, then real card
+  // Fetch all anime cards in parallel for speed
+  const cardPlaceholders = [];
+
   for (let i = 0; i < pairs.length; i++) {
     const { title, description } = pairs[i];
 
     // Description bubble
     if (description) {
-      // Strip trailing "want more?" type lines — those are closing text, not descriptions
-      // Only show lines that feel like a description (not questions)
       const descLines = description.split('\n').filter(l => l.trim());
       const actualDesc = descLines.filter(l => !l.match(/^(any|want|let me|did|seen|sound)/i)).join('\n').trim();
       const closingText = descLines.filter(l => l.match(/^(any|want|let me|did|seen|sound)/i)).join('\n').trim();
@@ -507,7 +508,6 @@ async function renderBotMessage(text) {
         chatBox.appendChild(wrapper);
       }
 
-      // If last pair, show closing text separately
       if (i === pairs.length - 1 && closingText) {
         setTimeout(() => {
           const wrapper = document.createElement('div');
@@ -518,37 +518,51 @@ async function renderBotMessage(text) {
           wrapper.appendChild(bubble);
           chatBox.appendChild(wrapper);
           chatBox.scrollTop = chatBox.scrollHeight;
-        }, pairs.length * 500 + 200);
+        }, 300);
       }
     }
 
-    // Loading placeholder card
+    // Loading placeholder
     const placeholder = document.createElement('div');
     placeholder.className = 'card-loading';
     placeholder.textContent = `🔍 Looking up ${title}...`;
     chatBox.appendChild(placeholder);
-    chatBox.scrollTop = chatBox.scrollHeight;
+    cardPlaceholders.push({ placeholder, title });
+  }
 
-    // Fetch real card
+  chatBox.scrollTop = chatBox.scrollHeight;
+
+  // Fetch ALL cards in parallel — no waiting between them
+  await Promise.all(cardPlaceholders.map(async ({ placeholder, title }) => {
     try {
-      await sleep(i === 0 ? 0 : 450); // rate limit Jikan
       const card = await fetchAnimeCard(title);
-      chatBox.replaceChild(card, placeholder);
+      if (placeholder.parentNode) {
+        placeholder.parentNode.replaceChild(card, placeholder);
+      }
     } catch (e) {
       placeholder.textContent = `${title} — couldn't load details, but trust Nami on this one!`;
     }
-
     chatBox.scrollTop = chatBox.scrollHeight;
-  }
+  }));
 
   chatBox.scrollTop = chatBox.scrollHeight;
 }
 
 async function fetchAnimeCard(title) {
-  // Search with TV type preference to avoid music videos etc
+  // Search with type preference to avoid music videos etc
   const url = `https://api.jikan.moe/v4/anime?q=${encodeURIComponent(title)}&limit=5&sfw=true`;
-  const res = await fetch(url);
-  const data = await res.json();
+  
+  // Add timeout so a hanging Jikan request doesn't block everything
+  const controller = new AbortController();
+  const timeout = setTimeout(() => controller.abort(), 8000);
+  
+  let res, data;
+  try {
+    res = await fetch(url, { signal: controller.signal });
+    data = await res.json();
+  } finally {
+    clearTimeout(timeout);
+  }
 
   // Prefer TV/Movie results over music/specials
   const results = data.data || [];
