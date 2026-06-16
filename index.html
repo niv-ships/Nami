@@ -357,18 +357,19 @@ RULES:
 - Use the English title exactly as it appears on MyAnimeList
 - NEVER say "Based on your preferences..." — algorithm talk, not friend talk
 - NEVER start robotic ("Hello I'm an AI")
-- Keep messages SHORT. No walls of text.`;
+- Keep messages SHORT. No walls of text.
 
-let apiKey = '';
+STREAMING AVAILABILITY RULES (very important):
+- NEVER state streaming availability as a hard fact. Streaming rights change constantly and vary by country.
+- If asked where to watch, always frame it as a suggestion: "I think this might be on Netflix India or Crunchyroll, but rights change all the time — check JustWatch to be sure! 🙂"
+- NEVER say "This is on Netflix" — always say "I think this might be on Netflix, worth checking!"
+- When unsure, just say "Check JustWatch for where to watch this in India — the link is right on the card 🙂"
+- Never confidently name a specific platform without this caveat.`;
+
+let apiKey = 'PASTE_YOUR_API_KEY_HERE';
 let conversationHistory = [];
 
 async function startChat() {
-  apiKey = document.getElementById('apiKey').value.trim();
-  if (!apiKey) {
-    document.getElementById('landingError').textContent = '⚠️ Please enter your API key first!';
-    return;
-  }
-  document.getElementById('landingError').textContent = '';
   document.getElementById('landing-section').style.display = 'none';
   const chatSection = document.getElementById('chat-section');
   chatSection.style.display = 'flex';
@@ -546,6 +547,7 @@ async function fetchAnimeCard(title) {
       </div>
       ${genres.length ? `<div class="anime-genres">${genres.map(g => `<span class="genre-tag">${g}</span>`).join('')}</div>` : ''}
       ${malUrl ? `<a class="anime-mal-link" href="${malUrl}" target="_blank">View on MAL →</a>` : ''}
+      <a class="anime-mal-link" href="https://www.justwatch.com/in/search?q=${encodeURIComponent(displayTitle)}" target="_blank" style="color:rgba(99,179,237,0.8);">🎬 Where to watch in India →</a>
     </div>
   `;
 
