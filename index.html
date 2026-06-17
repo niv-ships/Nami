@@ -318,7 +318,7 @@
   </div>
 </div>
 
-<div class="footer">built by @niv-ships ✦ powered by Claude + MAL</div>
+<div class="footer">built by @niv-ships ✦ powered by Claude + AniList</div>
 
 <script>
 const SYSTEM_PROMPT = `You are Nami — a warm, enthusiastic anime-loving friend who gives personalised anime recommendations. You're knowledgeable but never pretentious. You feel like that one friend who has watched everything and always knows exactly what someone needs.
@@ -551,42 +551,48 @@ async function renderBotMessage(text) {
 }
 
 async function fetchAnimeCard(title) {
-  // Search with type preference to avoid music videos etc
-  const url = `https://api.jikan.moe/v4/anime?q=${encodeURIComponent(title)}&limit=5&sfw=true`;
-  
-  // Add timeout so a hanging Jikan request doesn't block everything
-  const controller = new AbortController();
-  const timeout = setTimeout(() => controller.abort(), 8000);
-  
-  let res, data;
-  try {
-    res = await fetch(url, { signal: controller.signal });
-    data = await res.json();
-  } finally {
-    clearTimeout(timeout);
-  }
+  // AniList GraphQL API — official, fast, no auth needed
+  const query = `
+    query ($search: String) {
+      Media (search: $search, type: ANIME, sort: SEARCH_MATCH) {
+        title { english romaji }
+        coverImage { large }
+        averageScore
+        episodes
+        format
+        status
+        genres
+        siteUrl
+      }
+    }
+  `;
 
-  // Prefer TV/Movie results over music/specials
-  const results = data.data || [];
-  const anime = results.find(a => ['TV', 'Movie', 'OVA'].includes(a.type)) || results[0];
+  const res = await fetch('https://graphql.anilist.co', {
+    method: 'POST',
+    headers: { 'Content-Type': 'application/json', 'Accept': 'application/json' },
+    body: JSON.stringify({ query, variables: { search: title } })
+  });
+
+  const data = await res.json();
+  const anime = data?.data?.Media;
 
   const card = document.createElement('div');
   card.className = 'anime-card';
   card.style.cursor = 'pointer';
 
   if (!anime) {
-    card.innerHTML = `<div class="anime-info"><div class="anime-title">${title}</div><div style="font-size:11px;color:rgba(255,255,255,0.3);margin-top:4px;">Couldn't find on MAL — but trust Nami on this one!</div><div style="font-size:11px;color:rgba(99,179,237,0.7);margin-top:4px;">Tap to ask Nami where to watch 👆</div></div>`;
+    card.innerHTML = `<div class="anime-info"><div class="anime-title">${title}</div><div style="font-size:11px;color:rgba(255,255,255,0.3);margin-top:4px;">Couldn't find details — but trust Nami on this one!</div><div style="font-size:11px;color:rgba(99,179,237,0.7);margin-top:4px;">Tap to ask Nami where to watch 👆</div></div>`;
     card.onclick = () => askNamiAboutStreaming(title);
     return card;
   }
 
-  const coverUrl = anime.images?.jpg?.image_url;
-  const score = anime.score ? `⭐ ${anime.score}` : null;
-  const episodes = anime.episodes ? `${anime.episodes} eps` : anime.status === 'Currently Airing' ? 'Airing' : null;
-  const type = anime.type || null;
-  const genres = (anime.genres || []).slice(0, 3).map(g => g.name);
-  const malUrl = anime.url;
-  const displayTitle = anime.title_english || anime.title;
+  const displayTitle = anime.title.english || anime.title.romaji;
+  const coverUrl = anime.coverImage?.large;
+  const score = anime.averageScore ? `⭐ ${(anime.averageScore / 10).toFixed(1)}` : null;
+  const episodes = anime.episodes ? `${anime.episodes} eps` : anime.status === 'RELEASING' ? 'Airing' : null;
+  const format = anime.format || null;
+  const genres = (anime.genres || []).slice(0, 3);
+  const anilistUrl = anime.siteUrl;
   const jwUrl = `https://www.justwatch.com/in/search?q=${encodeURIComponent(displayTitle)}`;
 
   card.innerHTML = `
@@ -599,20 +605,19 @@ async function fetchAnimeCard(title) {
       <div class="anime-meta">
         ${score ? `<span class="anime-badge badge-score">${score}</span>` : ''}
         ${episodes ? `<span class="anime-badge badge-eps">${episodes}</span>` : ''}
-        ${type ? `<span class="anime-badge badge-type">${type}</span>` : ''}
+        ${format ? `<span class="anime-badge badge-type">${format}</span>` : ''}
       </div>
       ${genres.length ? `<div class="anime-genres">${genres.map(g => `<span class="genre-tag">${g}</span>`).join('')}</div>` : ''}
       <div style="display:flex; gap:10px; margin-top:4px; flex-wrap:wrap;">
-        ${malUrl ? `<a class="anime-mal-link" href="${malUrl}" target="_blank" onclick="event.stopPropagation()">View on MAL →</a>` : ''}
+        ${anilistUrl ? `<a class="anime-mal-link" href="${anilistUrl}" target="_blank" onclick="event.stopPropagation()">View on AniList →</a>` : ''}
         <a class="anime-mal-link" href="${jwUrl}" target="_blank" onclick="event.stopPropagation()" style="color:rgba(99,179,237,0.8);">🎬 JustWatch →</a>
       </div>
       <div style="font-size:10px;color:rgba(255,255,255,0.25);margin-top:4px;">Tap card to ask Nami where to stream 👆</div>
     </div>
   `;
 
-  // Tapping the card asks Nami about streaming
   card.onclick = (e) => {
-    if (e.target.tagName === 'A') return; // don't intercept link clicks
+    if (e.target.tagName === 'A') return;
     askNamiAboutStreaming(displayTitle);
   };
 
