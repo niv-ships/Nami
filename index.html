@@ -434,6 +434,7 @@ STREAMING RULES:
 let apiKey = '';
 let conversationHistory = [];
 let isBusy = false;
+let lastRecommendedTitles = []; // track last round of anime titles for "Where to watch?" chip
 
 // ─── Boot ─────────────────────────────────────────────────────────────────────
 async function startChat() {
@@ -544,6 +545,7 @@ async function renderBotMessage(text) {
 
   // Build pairs: [{title, description}]
   const pairs = [];
+  lastRecommendedTitles = []; // reset for this round
   for (let i = 1; i < parts.length; i += 2) {
     const title = parts[i].trim();
     const rawAfter = (parts[i + 1] || '').trim();
@@ -559,6 +561,7 @@ async function renderBotMessage(text) {
       description: descLines.join('\n'),
       closing: i + 2 >= parts.length ? closingLines.join('\n') : ''
     });
+    lastRecommendedTitles.push(title);
   }
 
   // Place loading placeholders + description bubbles
@@ -572,6 +575,7 @@ async function renderBotMessage(text) {
 
     const placeholder = document.createElement('div');
     placeholder.className = 'card-loading';
+    placeholder.style.cssText = 'width:100%;max-width:85%;align-self:flex-start;';
     placeholder.textContent = `🔍 Looking up ${title}...`;
     chatBox.appendChild(placeholder);
     cardPlaceholders.push({ placeholder, title });
@@ -629,7 +633,11 @@ function showChips(options) {
     chip.textContent = label;
     chip.onclick = () => {
       wrapper.remove();
-      sendMessage(label);
+      if (label === '🎬 Where to watch?') {
+        showJustWatchLinks();
+      } else {
+        sendMessage(label);
+      }
     };
     wrapper.appendChild(chip);
   });
@@ -637,10 +645,49 @@ function showChips(options) {
   chatBox.appendChild(wrapper);
 }
 
+// ─── Show JustWatch links inline (no Claude needed) ───────────────────────────
+function showJustWatchLinks() {
+  const chatBox = document.getElementById('chatBox');
+  if (!lastRecommendedTitles.length) return;
+
+  // Bot bubble intro
+  appendBotBubble('Here are the JustWatch links — just tap to check what\'s streaming in India right now 🎬', true);
+
+  // One card per title
+  const linksWrapper = document.createElement('div');
+  linksWrapper.style.cssText = 'display:flex;flex-direction:column;gap:8px;align-self:flex-start;width:100%;max-width:85%;';
+
+  lastRecommendedTitles.forEach(title => {
+    const jwUrl = `https://www.justwatch.com/in/search?q=${encodeURIComponent(title)}`;
+    const linkCard = document.createElement('a');
+    linkCard.href = jwUrl;
+    linkCard.target = '_blank';
+    linkCard.style.cssText = `
+      display:flex;align-items:center;gap:10px;
+      background:rgba(99,179,237,0.08);
+      border:1px solid rgba(99,179,237,0.2);
+      border-radius:12px;padding:10px 14px;
+      text-decoration:none;
+      transition:background 0.15s,border-color 0.15s;
+    `;
+    linkCard.innerHTML = `
+      <span style="font-size:18px;flex-shrink:0;">🎬</span>
+      <span style="flex:1;color:#fff;font-size:13px;font-weight:600;">${escHtml(title)}</span>
+      <span style="color:rgba(99,179,237,0.8);font-size:12px;">JustWatch →</span>
+    `;
+    linksWrapper.appendChild(linkCard);
+  });
+
+  chatBox.appendChild(linksWrapper);
+  scrollBottom();
+}
+
 // ─── AniList card fetch ───────────────────────────────────────────────────────
 async function fetchAnimeCard(title) {
   const card = document.createElement('div');
   card.className = 'anime-card';
+  // Explicit sizing so card renders correctly as a standalone element
+  card.style.cssText = 'width:100%;max-width:85%;align-self:flex-start;';
 
   const query = `
     query ($search: String) {
@@ -659,21 +706,26 @@ async function fetchAnimeCard(title) {
 
   let anime = null;
   try {
+    // 8 second timeout — AniList is fast but mobile connections vary
+    const controller = new AbortController();
+    const timeout = setTimeout(() => controller.abort(), 8000);
+
     const res = await fetch('https://graphql.anilist.co', {
       method: 'POST',
       headers: {
         'Content-Type': 'application/json',
         'Accept': 'application/json'
       },
-      body: JSON.stringify({ query, variables: { search: title } })
+      body: JSON.stringify({ query, variables: { search: title } }),
+      signal: controller.signal
     });
 
+    clearTimeout(timeout);
     if (!res.ok) throw new Error(`AniList ${res.status}`);
     const data = await res.json();
     anime = data?.data?.Media || null;
   } catch (err) {
-    // Silent fail — render a fallback card
-    anime = null;
+    anime = null; // fallback card below
   }
 
   if (!anime) {
