@@ -549,7 +549,7 @@ async function renderBot(text) {
     if (desc) addBotBubble(desc, false);
 
     const ph = document.createElement('div');
-    ph.className = 'card-loading';
+    ph.style.cssText = 'background:rgba(255,255,255,0.04);border:1px solid rgba(255,255,255,0.08);border-radius:14px;padding:14px 16px;color:rgba(255,255,255,0.35);font-size:12px;font-style:italic;width:90%;min-height:48px;box-sizing:border-box;';
     ph.textContent = `🔍 Looking up ${title}...`;
     document.getElementById('msgs').appendChild(ph);
     placeholders.push({ ph, title });
@@ -689,45 +689,109 @@ async function fetchCard(title) {
 }
 
 function buildCard(searchTitle, a) {
-  const card = document.createElement('div');
-  card.className = 'anime-card';
-
   const title = a?.title || searchTitle;
   const jw = `https://www.justwatch.com/in/search?q=${encodeURIComponent(title)}`;
 
-  // Build structure with DOM API — no innerHTML + lazy loading issues
-  const placeholder = document.createElement('div');
-  placeholder.className = 'a-placeholder';
-  placeholder.textContent = '🎌';
+  // Outer card — ALL styles inline, zero CSS class dependency
+  const card = document.createElement('div');
+  card.style.cssText = [
+    'display:flex',
+    'background:rgba(255,255,255,0.07)',
+    'border:1px solid rgba(255,255,255,0.14)',
+    'border-radius:14px',
+    'overflow:hidden',
+    'width:90%',
+    'min-height:100px',
+    'cursor:pointer',
+    'margin:2px 0',
+    'box-sizing:border-box'
+  ].join(';');
 
+  // Cover / placeholder
+  const thumb = document.createElement('div');
+  thumb.style.cssText = 'width:72px;min-height:100px;flex-shrink:0;background:linear-gradient(135deg,rgba(233,30,140,0.18),rgba(124,58,237,0.18));display:flex;align-items:center;justify-content:center;font-size:26px;';
+  thumb.textContent = '🎌';
+  card.appendChild(thumb);
+
+  // Info panel
   const info = document.createElement('div');
-  info.className = 'a-info';
-  info.innerHTML = `
-    <div class="a-title">${escHtml(title)}</div>
-    <div class="a-meta">
-      ${a?.score ? `<span class="badge b-score">${a.score}</span>` : ''}
-      ${a?.eps   ? `<span class="badge b-eps">${a.eps}</span>` : ''}
-      ${a?.type  ? `<span class="badge b-type">${a.type}</span>` : ''}
-    </div>
-    ${a?.genres?.length ? `<div class="a-genres">${a.genres.map(g => `<span class="genre-tag">${escHtml(g)}</span>`).join('')}</div>` : ''}
-    <div class="a-links">
-      ${a?.url ? `<a class="a-link" href="${a.url}" target="_blank" onclick="event.stopPropagation()">${a.src === 'anilist' ? 'AniList →' : 'MAL →'}</a>` : ''}
-      <a class="a-link jw" href="${jw}" target="_blank" onclick="event.stopPropagation()">🎬 JustWatch →</a>
-    </div>
-    <div class="a-hint">Tap to ask Nami where to stream</div>`;
+  info.style.cssText = 'padding:10px 12px;flex:1;min-width:0;display:flex;flex-direction:column;gap:5px;';
 
-  card.appendChild(placeholder);
+  const titleEl = document.createElement('div');
+  titleEl.style.cssText = 'color:#fff;font-size:13px;font-weight:700;line-height:1.3;word-break:break-word;';
+  titleEl.textContent = title;
+  info.appendChild(titleEl);
+
+  // Badges
+  if (a?.score || a?.eps || a?.type) {
+    const meta = document.createElement('div');
+    meta.style.cssText = 'display:flex;gap:5px;flex-wrap:wrap;';
+    const badgeBase = 'font-size:10px;font-weight:600;padding:2px 7px;border-radius:8px;';
+    if (a.score) {
+      const b = document.createElement('span');
+      b.style.cssText = badgeBase + 'background:rgba(251,191,36,0.18);color:#fbbf24;border:1px solid rgba(251,191,36,0.28);';
+      b.textContent = a.score; meta.appendChild(b);
+    }
+    if (a.eps) {
+      const b = document.createElement('span');
+      b.style.cssText = badgeBase + 'background:rgba(124,58,237,0.18);color:#a78bfa;border:1px solid rgba(124,58,237,0.28);';
+      b.textContent = a.eps; meta.appendChild(b);
+    }
+    if (a.type) {
+      const b = document.createElement('span');
+      b.style.cssText = badgeBase + 'background:rgba(16,185,129,0.18);color:#34d399;border:1px solid rgba(16,185,129,0.28);';
+      b.textContent = a.type; meta.appendChild(b);
+    }
+    info.appendChild(meta);
+  }
+
+  // Genres
+  if (a?.genres?.length) {
+    const genres = document.createElement('div');
+    genres.style.cssText = 'display:flex;gap:4px;flex-wrap:wrap;';
+    a.genres.forEach(g => {
+      const tag = document.createElement('span');
+      tag.style.cssText = 'font-size:10px;padding:2px 6px;border-radius:6px;background:rgba(255,255,255,0.07);color:rgba(255,255,255,0.48);';
+      tag.textContent = g;
+      genres.appendChild(tag);
+    });
+    info.appendChild(genres);
+  }
+
+  // Links
+  const links = document.createElement('div');
+  links.style.cssText = 'display:flex;gap:10px;flex-wrap:wrap;margin-top:2px;';
+  if (a?.url) {
+    const lnk = document.createElement('a');
+    lnk.href = a.url; lnk.target = '_blank';
+    lnk.style.cssText = 'font-size:11px;color:rgba(233,30,140,0.85);text-decoration:none;';
+    lnk.textContent = a?.src === 'anilist' ? 'AniList →' : 'MAL →';
+    lnk.addEventListener('click', e => e.stopPropagation());
+    links.appendChild(lnk);
+  }
+  const jwLink = document.createElement('a');
+  jwLink.href = jw; jwLink.target = '_blank';
+  jwLink.style.cssText = 'font-size:11px;color:rgba(99,179,237,0.85);text-decoration:none;';
+  jwLink.textContent = '🎬 JustWatch →';
+  jwLink.addEventListener('click', e => e.stopPropagation());
+  links.appendChild(jwLink);
+  info.appendChild(links);
+
+  const hint = document.createElement('div');
+  hint.style.cssText = 'font-size:10px;color:rgba(255,255,255,0.2);margin-top:1px;';
+  hint.textContent = 'Tap to ask Nami where to stream';
+  info.appendChild(hint);
+
   card.appendChild(info);
 
-  // Load image via JS — no lazy loading attr, fires immediately
+  // Load cover image
   if (a?.cover) {
-    const img = document.createElement('img');
-    img.className = 'a-cover';
+    const img = new Image();
+    img.style.cssText = 'width:72px;min-height:100px;object-fit:cover;flex-shrink:0;display:block;';
     img.alt = title;
-    img.onerror = () => { img.style.display = 'none'; placeholder.style.display = 'flex'; };
-    img.onload  = () => { placeholder.style.display = 'none'; };
-    card.insertBefore(img, placeholder);
-    img.src = a.cover; // set src AFTER attaching to DOM and setting handlers
+    img.onload = () => { card.insertBefore(img, thumb); thumb.style.display = 'none'; };
+    img.onerror = () => { /* keep placeholder */ };
+    img.src = a.cover;
   }
 
   card.addEventListener('click', e => {
