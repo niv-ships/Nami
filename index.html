@@ -1,374 +1,357 @@
 <!DOCTYPE html>
 <html lang="en">
 <head>
-  <meta charset="UTF-8" />
-  <meta name="viewport" content="width=device-width, initial-scale=1.0"/>
+  <meta charset="UTF-8"/>
+  <meta name="viewport" content="width=device-width, initial-scale=1.0, viewport-fit=cover"/>
   <title>Nami — Your Anime Bestie</title>
   <style>
-    * { box-sizing: border-box; margin: 0; padding: 0; }
+    *, *::before, *::after { box-sizing: border-box; margin: 0; padding: 0; }
 
-    :root {
-      --app-height: 100dvh;
+    html, body {
+      height: 100%;
+      overflow: hidden;
+      font-family: -apple-system, 'Segoe UI', system-ui, sans-serif;
+      background: #0d0d1a;
     }
 
-    body {
-      font-family: 'Segoe UI', system-ui, sans-serif;
-      min-height: var(--app-height);
-      background: linear-gradient(135deg, #0d0d1a 0%, #1a0d2e 50%, #0d1a2e 100%);
+    /* ── Full-screen app shell ── */
+    #app {
+      position: fixed;
+      inset: 0;
+      display: flex;
+      flex-direction: column;
+      background: linear-gradient(160deg, #0d0d1a 0%, #1a0d2e 55%, #0d1a2e 100%);
+    }
+
+    /* ── Header ── */
+    #header {
+      display: flex;
+      align-items: center;
+      gap: 12px;
+      padding: 12px 16px;
+      padding-top: max(12px, env(safe-area-inset-top));
+      background: rgba(255,255,255,0.03);
+      border-bottom: 1px solid rgba(255,255,255,0.07);
+      flex-shrink: 0;
+      z-index: 10;
+    }
+
+    .avatar {
+      width: 38px; height: 38px; border-radius: 50%;
+      background: linear-gradient(135deg, #e91e8c, #7c3aed);
+      display: flex; align-items: center; justify-content: center;
+      font-size: 18px; flex-shrink: 0;
+      box-shadow: 0 0 14px rgba(233,30,140,0.4);
+    }
+    .htext { flex: 1; }
+    .hname { color: #fff; font-weight: 700; font-size: 15px; }
+    .hsub  { color: rgba(255,255,255,0.38); font-size: 11px; margin-top: 1px; }
+    .dot   { width: 8px; height: 8px; border-radius: 50%; background: #4ade80; box-shadow: 0 0 6px #4ade80; }
+
+    /* ── Landing screen ── */
+    #landing {
+      flex: 1;
       display: flex;
       flex-direction: column;
       align-items: center;
       justify-content: center;
-      padding: 16px;
-    }
-
-    .card {
-      width: 100%;
-      max-width: 520px;
-      background: rgba(255,255,255,0.04);
-      backdrop-filter: blur(20px);
-      -webkit-backdrop-filter: blur(20px);
-      border-radius: 24px;
-      border: 1px solid rgba(255,255,255,0.08);
-      overflow: hidden;
-      display: flex;
-      flex-direction: column;
-      height: min(720px, calc(var(--app-height) - 32px));
-      box-shadow: 0 32px 64px rgba(0,0,0,0.4);
-    }
-
-    .header {
-      padding: 16px 20px;
-      background: rgba(255,255,255,0.03);
-      border-bottom: 1px solid rgba(255,255,255,0.06);
-      display: flex;
-      align-items: center;
+      padding: 24px 20px;
+      padding-bottom: max(24px, env(safe-area-inset-bottom));
+      text-align: center;
       gap: 12px;
-      flex-shrink: 0;
+      overflow-y: auto;
     }
 
-    .avatar {
-      width: 40px; height: 40px;
-      border-radius: 50%;
-      background: linear-gradient(135deg, #e91e8c, #7c3aed);
-      display: flex; align-items: center; justify-content: center;
-      font-size: 20px; flex-shrink: 0;
-      box-shadow: 0 0 16px rgba(233,30,140,0.4);
-    }
+    .l-emoji { font-size: 48px; line-height: 1; }
+    .l-title { color: #fff; font-size: 22px; font-weight: 800; letter-spacing: -0.5px; }
+    .l-sub   { color: rgba(255,255,255,0.42); font-size: 14px; line-height: 1.6; max-width: 280px; }
 
-    .header-text { flex: 1; }
-    .header-name { color: #fff; font-weight: 700; font-size: 15px; }
-    .header-sub { color: rgba(255,255,255,0.4); font-size: 12px; margin-top: 1px; }
-
-    .online-dot {
-      width: 8px; height: 8px; border-radius: 50%;
-      background: #4ade80; box-shadow: 0 0 8px #4ade80; flex-shrink: 0;
-    }
-
-    /* Landing */
-    .landing {
-      flex: 1; display: flex; flex-direction: column;
-      align-items: center; justify-content: center;
-      padding: 28px 24px; text-align: center; gap: 14px;
-    }
-
-    .landing-emoji { font-size: 52px; line-height: 1; margin-bottom: 4px; }
-    .landing-title { color: #fff; font-size: 22px; font-weight: 800; letter-spacing: -0.5px; }
-    .landing-sub { color: rgba(255,255,255,0.45); font-size: 14px; line-height: 1.6; max-width: 300px; }
-
-    .key-section { width: 100%; display: flex; flex-direction: column; gap: 10px; margin-top: 8px; }
-    .key-label { color: rgba(255,255,255,0.5); font-size: 11px; font-weight: 600; letter-spacing: 1px; text-transform: uppercase; }
+    .key-section { width: 100%; max-width: 380px; display: flex; flex-direction: column; gap: 10px; margin-top: 8px; }
+    .key-label   { color: rgba(255,255,255,0.45); font-size: 11px; font-weight: 600; letter-spacing: 1px; text-transform: uppercase; text-align: left; }
 
     .key-input {
       background: rgba(255,255,255,0.07);
       border: 1px solid rgba(255,255,255,0.12);
-      border-radius: 12px; padding: 12px 14px;
-      color: #fff; font-size: 13px; font-family: monospace;
-      outline: none; width: 100%;
+      border-radius: 12px; padding: 13px 14px;
+      color: #fff; font-size: 16px; /* 16px prevents iOS zoom */
+      font-family: monospace; outline: none; width: 100%;
+      -webkit-appearance: none;
     }
-    .key-input::placeholder { color: rgba(255,255,255,0.25); }
-    .key-input:focus { border-color: rgba(233,30,140,0.4); }
+    .key-input::placeholder { color: rgba(255,255,255,0.22); }
+    .key-input:focus { border-color: rgba(233,30,140,0.45); }
 
     .start-btn {
       background: linear-gradient(135deg, #e91e8c, #7c3aed);
-      border: none; border-radius: 12px; padding: 14px;
+      border: none; border-radius: 12px; padding: 15px;
       color: #fff; font-size: 15px; font-weight: 700;
-      cursor: pointer; width: 100%; letter-spacing: 0.3px;
+      cursor: pointer; width: 100%;
       box-shadow: 0 4px 20px rgba(233,30,140,0.35);
+      -webkit-appearance: none;
+      touch-action: manipulation;
+    }
+    .start-btn:active { opacity: 0.88; }
+
+    /* ── Chat section ── */
+    #chat {
+      display: none;
+      flex-direction: column;
+      flex: 1;
+      overflow: hidden;
+      position: relative;
     }
 
-    /* Chat */
-    .chat-box {
-      flex: 1; overflow-y: auto;
-      padding: 18px 16px 8px;
-      display: flex; flex-direction: column; gap: 14px;
+    /* ── Message list ── */
+    #msgs {
+      flex: 1;
+      overflow-y: auto;
       -webkit-overflow-scrolling: touch;
+      overscroll-behavior: contain;
+      padding: 16px 14px 8px;
+      display: flex;
+      flex-direction: column;
+      gap: 10px;
     }
 
-    .msg-wrapper { display: flex; flex-direction: column; gap: 4px; }
-    .msg-wrapper.user { align-items: flex-end; }
-    .msg-wrapper.bot { align-items: flex-start; }
+    /* ── Bubbles ── */
+    .mw       { display: flex; flex-direction: column; gap: 3px; }
+    .mw.user  { align-items: flex-end; }
+    .mw.bot   { align-items: flex-start; }
 
-    .msg-label {
-      font-size: 10px; font-weight: 600;
-      letter-spacing: 0.5px; text-transform: uppercase; padding-left: 4px;
+    .mlabel {
+      font-size: 9px; font-weight: 700; letter-spacing: 0.6px;
+      text-transform: uppercase; padding: 0 4px;
     }
-    .msg-wrapper.user .msg-label { color: rgba(233,30,140,0.6); }
-    .msg-wrapper.bot .msg-label { color: rgba(124,58,237,0.6); }
+    .mw.user .mlabel { color: rgba(233,30,140,0.55); }
+    .mw.bot  .mlabel { color: rgba(124,58,237,0.55); }
 
     .bubble {
-      padding: 11px 15px; border-radius: 18px;
-      font-size: 14px; line-height: 1.6;
-      max-width: 85%; white-space: pre-wrap; word-break: break-word;
+      padding: 10px 14px; border-radius: 18px;
+      font-size: 14px; line-height: 1.58;
+      max-width: 82%; white-space: pre-wrap; word-break: break-word;
     }
-
     .bubble.user {
       background: linear-gradient(135deg, #e91e8c, #7c3aed);
-      color: #fff; border-bottom-right-radius: 5px;
+      color: #fff; border-bottom-right-radius: 4px;
     }
-
     .bubble.bot {
       background: rgba(255,255,255,0.08);
       color: rgba(255,255,255,0.92);
-      border: 1px solid rgba(255,255,255,0.08);
-      border-bottom-left-radius: 5px;
+      border: 1px solid rgba(255,255,255,0.09);
+      border-bottom-left-radius: 4px;
     }
 
-    /* Anime cards */
+    /* ── Anime card ── */
     .anime-card {
-      background: rgba(255,255,255,0.06);
-      border: 1px solid rgba(255,255,255,0.1);
-      border-radius: 14px; overflow: hidden;
       display: flex;
-      transition: border-color 0.2s;
-      width: 100%; max-width: 85%;
-      align-self: flex-start;
+      background: rgba(255,255,255,0.06);
+      border: 1px solid rgba(255,255,255,0.11);
+      border-radius: 14px;
+      overflow: hidden;
+      width: 90%;
       cursor: pointer;
+      transition: border-color 0.18s;
+      -webkit-tap-highlight-color: transparent;
+      touch-action: manipulation;
     }
+    .anime-card:active { border-color: rgba(233,30,140,0.5); background: rgba(255,255,255,0.09); }
 
-    .anime-card:hover { border-color: rgba(233,30,140,0.4); }
-    .anime-card:active { border-color: rgba(233,30,140,0.7); }
-
-    .anime-cover {
-      width: 70px; min-height: 100px;
-      object-fit: cover; flex-shrink: 0;
-      background: rgba(255,255,255,0.05);
+    .a-cover {
+      width: 72px;
+      flex-shrink: 0;
+      object-fit: cover;
       display: block;
+      background: rgba(255,255,255,0.04);
+      min-height: 108px;
     }
-
-    .anime-cover-placeholder {
-      width: 70px; min-height: 100px;
-      background: linear-gradient(135deg, rgba(233,30,140,0.2), rgba(124,58,237,0.2));
+    .a-placeholder {
+      width: 72px; min-height: 108px; flex-shrink: 0;
+      background: linear-gradient(135deg, rgba(233,30,140,0.15), rgba(124,58,237,0.15));
       display: flex; align-items: center; justify-content: center;
-      font-size: 24px; flex-shrink: 0;
+      font-size: 26px;
     }
 
-    .anime-info {
-      padding: 10px 12px; flex: 1;
+    .a-info {
+      padding: 10px 12px; flex: 1; min-width: 0;
       display: flex; flex-direction: column; gap: 5px;
-      min-width: 0;
     }
-
-    .anime-title {
+    .a-title {
       color: #fff; font-size: 13px; font-weight: 700;
       line-height: 1.3; word-break: break-word;
     }
-
-    .anime-meta {
-      display: flex; gap: 6px; flex-wrap: wrap;
-    }
-
-    .anime-badge {
+    .a-meta  { display: flex; gap: 5px; flex-wrap: wrap; }
+    .badge {
       font-size: 10px; font-weight: 600;
       padding: 2px 7px; border-radius: 8px;
     }
+    .b-score { background: rgba(251,191,36,0.18); color: #fbbf24; border: 1px solid rgba(251,191,36,0.28); }
+    .b-eps   { background: rgba(124,58,237,0.18); color: #a78bfa; border: 1px solid rgba(124,58,237,0.28); }
+    .b-type  { background: rgba(16,185,129,0.18); color: #34d399;  border: 1px solid rgba(16,185,129,0.28); }
 
-    .badge-score {
-      background: rgba(251,191,36,0.2);
-      color: #fbbf24;
-      border: 1px solid rgba(251,191,36,0.3);
-    }
-
-    .badge-eps {
-      background: rgba(124,58,237,0.2);
-      color: #a78bfa;
-      border: 1px solid rgba(124,58,237,0.3);
-    }
-
-    .badge-type {
-      background: rgba(16,185,129,0.2);
-      color: #34d399;
-      border: 1px solid rgba(16,185,129,0.3);
-    }
-
-    .anime-genres {
-      display: flex; gap: 4px; flex-wrap: wrap;
-    }
-
+    .a-genres { display: flex; gap: 4px; flex-wrap: wrap; }
     .genre-tag {
-      font-size: 10px; padding: 2px 6px;
-      border-radius: 6px;
-      background: rgba(255,255,255,0.07);
-      color: rgba(255,255,255,0.5);
+      font-size: 10px; padding: 2px 6px; border-radius: 6px;
+      background: rgba(255,255,255,0.07); color: rgba(255,255,255,0.48);
     }
+    .a-links { display: flex; gap: 10px; flex-wrap: wrap; margin-top: 2px; }
+    .a-link  { font-size: 11px; color: rgba(233,30,140,0.8); text-decoration: none; }
+    .a-link.jw { color: rgba(99,179,237,0.8); }
+    .a-hint  { font-size: 10px; color: rgba(255,255,255,0.18); margin-top: 1px; }
 
-    .card-links {
-      display: flex; gap: 10px; margin-top: 2px; flex-wrap: wrap;
-    }
-
-    .card-link {
-      font-size: 11px; color: rgba(233,30,140,0.8);
-      text-decoration: none;
-    }
-    .card-link:hover { color: #e91e8c; }
-    .card-link.jw { color: rgba(99,179,237,0.8); }
-    .card-link.jw:hover { color: #63b3ed; }
-
-    .card-tap-hint {
-      font-size: 10px; color: rgba(255,255,255,0.2); margin-top: 2px;
-    }
-
+    /* Card loading skeleton */
     .card-loading {
+      width: 90%;
       background: rgba(255,255,255,0.04);
-      border: 1px solid rgba(255,255,255,0.08);
-      border-radius: 14px; padding: 12px 14px;
-      color: rgba(255,255,255,0.3); font-size: 12px;
-      font-style: italic;
-      width: 100%; max-width: 85%;
-      align-self: flex-start;
+      border: 1px solid rgba(255,255,255,0.07);
+      border-radius: 14px; padding: 14px 16px;
+      color: rgba(255,255,255,0.28); font-size: 12px; font-style: italic;
     }
 
-    /* Thinking dots */
+    /* ── Prompt chips ── */
+    .chips {
+      display: flex; flex-wrap: wrap; gap: 7px;
+      padding: 2px 0;
+    }
+    .chip {
+      background: rgba(255,255,255,0.06);
+      border: 1px solid rgba(255,255,255,0.14);
+      border-radius: 20px; padding: 7px 13px;
+      font-size: 12px; font-weight: 500;
+      color: rgba(255,255,255,0.72);
+      cursor: pointer;
+      -webkit-tap-highlight-color: transparent;
+      touch-action: manipulation;
+      transition: background 0.13s, border-color 0.13s;
+    }
+    .chip:active {
+      background: rgba(233,30,140,0.2);
+      border-color: rgba(233,30,140,0.45);
+      color: #fff;
+    }
+
+    /* ── Thinking dots ── */
     .thinking {
       display: flex; align-items: center; gap: 5px;
       background: rgba(255,255,255,0.06);
       border: 1px solid rgba(255,255,255,0.08);
-      padding: 12px 16px; border-radius: 18px;
-      border-bottom-left-radius: 5px; align-self: flex-start;
+      padding: 11px 15px; border-radius: 18px;
+      border-bottom-left-radius: 4px;
+      width: fit-content;
     }
-
     .dot {
       width: 6px; height: 6px; border-radius: 50%;
-      background: rgba(233,30,140,0.7);
-      animation: pulse 1.2s ease-in-out infinite;
+      background: rgba(233,30,140,0.75);
+      animation: blink 1.2s ease-in-out infinite;
     }
     .dot:nth-child(2) { animation-delay: 0.2s; }
     .dot:nth-child(3) { animation-delay: 0.4s; }
-
-    @keyframes pulse {
-      0%, 100% { opacity: 0.3; transform: scale(0.8); }
-      50% { opacity: 1; transform: scale(1.1); }
+    @keyframes blink {
+      0%,100% { opacity: 0.25; transform: scale(0.75); }
+      50%      { opacity: 1;    transform: scale(1.1); }
     }
 
-    /* Prompt chips */
-    .chips-wrapper {
-      display: flex; flex-wrap: wrap; gap: 8px;
-      padding: 4px 0 2px;
-      align-self: flex-start;
-      max-width: 100%;
+    /* ── Input bar ── */
+    #input-bar {
+      display: flex;
+      align-items: center;
+      gap: 8px;
+      padding: 10px 12px;
+      padding-bottom: max(10px, env(safe-area-inset-bottom));
+      border-top: 1px solid rgba(255,255,255,0.07);
+      background: rgba(0,0,0,0.25);
+      flex-shrink: 0;
     }
 
-    .chip {
-      background: rgba(255,255,255,0.06);
-      border: 1px solid rgba(255,255,255,0.14);
-      border-radius: 20px;
-      padding: 7px 14px;
-      font-size: 12px; font-weight: 500;
-      color: rgba(255,255,255,0.75);
-      cursor: pointer;
-      transition: background 0.15s, border-color 0.15s, color 0.15s;
-      white-space: nowrap;
-    }
-
-    .chip:hover {
-      background: rgba(233,30,140,0.15);
-      border-color: rgba(233,30,140,0.4);
-      color: #fff;
-    }
-
-    .chip:active {
-      background: rgba(233,30,140,0.25);
-    }
-
-    /* Input */
-    .input-area {
-      display: flex; gap: 8px;
-      padding: 10px 14px 12px;
-      border-top: 1px solid rgba(255,255,255,0.06);
-      background: rgba(0,0,0,0.2); flex-shrink: 0;
-    }
-
-    .text-input {
+    #txt {
       flex: 1;
-      background: rgba(255,255,255,0.07);
+      background: rgba(255,255,255,0.08);
       border: 1px solid rgba(255,255,255,0.1);
-      border-radius: 14px; padding: 11px 16px;
-      color: #fff; font-size: 14px; outline: none;
-      font-family: 'Segoe UI', system-ui, sans-serif;
+      border-radius: 22px;
+      padding: 10px 16px;
+      color: #fff;
+      font-size: 16px; /* 16px — no iOS auto-zoom */
+      font-family: -apple-system, 'Segoe UI', system-ui, sans-serif;
+      outline: none;
+      line-height: 1.4;
+      resize: none;
+      min-height: 42px;
+      max-height: 120px;
+      overflow-y: auto;
+      -webkit-appearance: none;
     }
-    .text-input::placeholder { color: rgba(255,255,255,0.25); }
-    .text-input:focus { border-color: rgba(233,30,140,0.35); }
+    #txt::placeholder { color: rgba(255,255,255,0.22); }
+    #txt:focus { border-color: rgba(233,30,140,0.38); }
 
-    .send-btn {
+    #send {
+      width: 42px; height: 42px; border-radius: 50%;
       background: linear-gradient(135deg, #e91e8c, #7c3aed);
-      border: none; border-radius: 14px; padding: 11px 18px;
-      color: #fff; font-size: 18px; cursor: pointer; flex-shrink: 0;
-      box-shadow: 0 4px 12px rgba(233,30,140,0.3);
+      border: none; color: #fff; font-size: 18px;
+      display: flex; align-items: center; justify-content: center;
+      cursor: pointer; flex-shrink: 0;
+      box-shadow: 0 3px 10px rgba(233,30,140,0.35);
+      -webkit-tap-highlight-color: transparent;
+      touch-action: manipulation;
     }
-    .send-btn:disabled { opacity: 0.5; cursor: not-allowed; }
+    #send:disabled { opacity: 0.45; }
+    #send:active:not(:disabled) { transform: scale(0.94); }
 
-    .error-msg { color: #f87171; font-size: 12px; padding: 4px 16px 6px; text-align: center; flex-shrink: 0; }
-    .footer { color: rgba(255,255,255,0.15); font-size: 11px; margin-top: 12px; text-align: center; }
-    #chat-section { display: none; flex-direction: column; flex: 1; overflow: hidden; }
+    .err { color: #f87171; font-size: 11px; text-align: center; padding: 2px 12px; flex-shrink: 0; }
+
+    /* ── JustWatch link cards ── */
+    .jw-card {
+      display: flex; align-items: center; gap: 10px;
+      background: rgba(99,179,237,0.07);
+      border: 1px solid rgba(99,179,237,0.2);
+      border-radius: 12px; padding: 10px 14px;
+      text-decoration: none;
+      width: 90%;
+      -webkit-tap-highlight-color: transparent;
+    }
+    .jw-card:active { background: rgba(99,179,237,0.15); }
+    .jw-title { flex: 1; color: #fff; font-size: 13px; font-weight: 600; }
+    .jw-arrow { color: rgba(99,179,237,0.8); font-size: 12px; flex-shrink: 0; }
   </style>
 </head>
 <body>
+<div id="app">
 
-<div class="card">
-  <div class="header">
+  <!-- Header -->
+  <div id="header">
     <div class="avatar">🎌</div>
-    <div class="header-text">
-      <div class="header-name">Nami</div>
-      <div class="header-sub">your anime bestie 🏴‍☠️</div>
+    <div class="htext">
+      <div class="hname">Nami</div>
+      <div class="hsub">your anime bestie 🏴‍☠️</div>
     </div>
-    <div class="online-dot"></div>
+    <div class="dot"></div>
   </div>
 
   <!-- Landing -->
-  <div id="landing-section" style="flex:1; display:flex; flex-direction:column;">
-    <div class="landing">
-      <div class="landing-emoji">🍥</div>
-      <div class="landing-title">Find your next obsession</div>
-      <div class="landing-sub">Tell Nami how you're feeling and she'll find exactly what you need to watch tonight.</div>
-      <div class="key-section">
-        <div class="key-label">Anthropic API Key</div>
-        <input class="key-input" type="password" id="apiKey" placeholder="sk-ant-..."
-          onkeydown="if(event.key==='Enter') startChat()" />
-        <button class="start-btn" onclick="startChat()">Start chatting with Nami ✨</button>
-        <div class="error-msg" id="landingError"></div>
-      </div>
+  <div id="landing">
+    <div class="l-emoji">🍥</div>
+    <div class="l-title">Find your next obsession</div>
+    <div class="l-sub">Tell Nami how you're feeling and she'll find exactly what you need to watch tonight.</div>
+    <div class="key-section">
+      <div class="key-label">Anthropic API Key</div>
+      <input class="key-input" type="password" id="apiKey" placeholder="sk-ant-..."
+        autocomplete="off" autocorrect="off" autocapitalize="off" spellcheck="false"/>
+      <button class="start-btn" id="startBtn">Start chatting with Nami ✨</button>
+      <div class="err" id="landingErr"></div>
     </div>
   </div>
 
   <!-- Chat -->
-  <div id="chat-section">
-    <div class="chat-box" id="chatBox"></div>
-    <div class="error-msg" id="chatError"></div>
-    <div class="input-area">
-      <input
-        class="text-input" type="text" id="userInput"
-        placeholder="Tell Nami what you're in the mood for..."
-        onkeydown="if(event.key==='Enter') sendMessage()"
-      />
-      <button class="send-btn" id="sendBtn" onclick="sendMessage()">↑</button>
+  <div id="chat">
+    <div id="msgs"></div>
+    <div class="err" id="chatErr"></div>
+    <div id="input-bar">
+      <textarea id="txt" placeholder="Tell Nami what you're in the mood for..." rows="1"></textarea>
+      <button id="send">↑</button>
     </div>
   </div>
+
 </div>
 
-<div class="footer">built by @niv-ships ✦ powered by Claude + AniList</div>
-
 <script>
-// ─── System prompt ────────────────────────────────────────────────────────────
+// ── System prompt ─────────────────────────────────────────────────────────────
 const SYSTEM_PROMPT = `You are Nami — a warm, enthusiastic anime-loving friend who gives personalised anime recommendations. You feel like the one friend who has watched everything and always knows exactly what someone needs.
 
 YOUR PERSONALITY:
@@ -420,86 +403,97 @@ Want more like these or something with a different energy? 😊
 CRITICAL FORMAT RULES:
 1. The [ANIME: Title] tag MUST appear on its own line — this triggers the cover art to load
 2. Use the English title as it appears on AniList/MAL — do NOT use Japanese titles unless no English title exists
-3. NEVER use **bold** or any markdown formatting for titles — ONLY the [ANIME: Title] tag
+3. NEVER use **bold** or any markdown — ONLY the [ANIME: Title] tag format
 4. NEVER skip the [ANIME: Tag] — every recommendation needs it, no exceptions
-5. Do NOT put extra text between the [ANIME: Tag] and the description line
-6. Keep messages SHORT — no walls of text
+5. Keep messages SHORT — no walls of text
 
 STREAMING RULES:
 - NEVER state streaming availability as a hard fact
 - If asked where to watch: "I think it might be on [Platform] but check JustWatch to be sure — rights change all the time 🙂"
 - NEVER confidently say "This is on Netflix" — always hedge it`;
 
-// ─── State ────────────────────────────────────────────────────────────────────
+// ── State ─────────────────────────────────────────────────────────────────────
 let apiKey = '';
-let conversationHistory = [];
-let isBusy = false;
-let lastRecommendedTitles = []; // track last round of anime titles for "Where to watch?" chip
+let history = [];
+let busy = false;
+let lastTitles = [];
 
-// ─── Boot ─────────────────────────────────────────────────────────────────────
+// ── Init ──────────────────────────────────────────────────────────────────────
+document.getElementById('startBtn').addEventListener('click', startChat);
+document.getElementById('apiKey').addEventListener('keydown', e => { if (e.key === 'Enter') startChat(); });
+document.getElementById('send').addEventListener('click', () => sendMessage());
+document.getElementById('txt').addEventListener('keydown', e => {
+  if (e.key === 'Enter' && !e.shiftKey) { e.preventDefault(); sendMessage(); }
+});
+
+// Auto-grow textarea
+document.getElementById('txt').addEventListener('input', function() {
+  this.style.height = 'auto';
+  this.style.height = Math.min(this.scrollHeight, 120) + 'px';
+});
+
+// iOS: when keyboard opens, scroll to bottom after a tick
+window.addEventListener('resize', () => {
+  setTimeout(() => scrollBottom(), 100);
+});
+
+// ── Start chat ────────────────────────────────────────────────────────────────
 async function startChat() {
   apiKey = document.getElementById('apiKey').value.trim();
   if (!apiKey) {
-    document.getElementById('landingError').textContent = '⚠️ Please enter your API key first!';
+    document.getElementById('landingErr').textContent = '⚠️ Please enter your API key first!';
     return;
   }
-  document.getElementById('landingError').textContent = '';
-  document.getElementById('landing-section').style.display = 'none';
-  const chatSection = document.getElementById('chat-section');
-  chatSection.style.display = 'flex';
+  document.getElementById('landingErr').textContent = '';
+  document.getElementById('landing').style.display = 'none';
+  const chatEl = document.getElementById('chat');
+  chatEl.style.display = 'flex';
 
-  conversationHistory = [
-    { role: 'user', content: "Hey! I'm looking for something to watch." }
-  ];
+  history = [{ role: 'user', content: "Hey! I'm looking for something to watch." }];
 
   showThinking();
   const reply = await callClaude();
   hideThinking();
-
   if (reply) {
-    conversationHistory.push({ role: 'assistant', content: reply });
-    await renderBotMessage(reply);
+    history.push({ role: 'assistant', content: reply });
+    await renderBot(reply);
   }
-
-  document.getElementById('userInput').focus();
+  document.getElementById('txt').focus();
 }
 
-// ─── Send message ─────────────────────────────────────────────────────────────
-async function sendMessage(overrideText) {
-  if (isBusy) return;
-  const input = document.getElementById('userInput');
-  const text = (overrideText || input.value).trim();
+// ── Send ──────────────────────────────────────────────────────────────────────
+async function sendMessage(override) {
+  if (busy) return;
+  const txt = document.getElementById('txt');
+  const text = (override ?? txt.value).trim();
   if (!text) return;
 
-  input.value = '';
-  document.getElementById('chatError').textContent = '';
+  txt.value = '';
+  txt.style.height = 'auto';
+  document.getElementById('chatErr').textContent = '';
 
-  // Remove chips if present
-  const existingChips = document.getElementById('promptChips');
-  if (existingChips) existingChips.remove();
+  const chips = document.getElementById('chips');
+  if (chips) chips.remove();
 
   addBubble('user', text);
-  conversationHistory.push({ role: 'user', content: text });
+  history.push({ role: 'user', content: text });
 
   setBusy(true);
   showThinking();
-
   const reply = await callClaude();
   hideThinking();
   setBusy(false);
 
   if (reply) {
-    conversationHistory.push({ role: 'assistant', content: reply });
-    await renderBotMessage(reply);
+    history.push({ role: 'assistant', content: reply });
+    await renderBot(reply);
   }
-
-  document.getElementById('userInput').focus();
 }
 
-// ─── Claude API ───────────────────────────────────────────────────────────────
+// ── Claude API ────────────────────────────────────────────────────────────────
 async function callClaude() {
   try {
-    const response = await fetch('https://api.anthropic.com/v1/messages', {
+    const res = await fetch('https://api.anthropic.com/v1/messages', {
       method: 'POST',
       headers: {
         'Content-Type': 'application/json',
@@ -511,291 +505,234 @@ async function callClaude() {
         model: 'claude-sonnet-4-6',
         max_tokens: 1024,
         system: SYSTEM_PROMPT,
-        messages: conversationHistory
+        messages: history
       })
     });
-    const data = await response.json();
+    const data = await res.json();
     if (data.error) throw new Error(data.error.message);
     return data.content[0].text;
   } catch (err) {
-    document.getElementById('chatError').textContent = '❌ ' + err.message;
+    document.getElementById('chatErr').textContent = '❌ ' + err.message;
     return null;
   }
 }
 
-// ─── Render bot message ───────────────────────────────────────────────────────
-async function renderBotMessage(text) {
-  const chatBox = document.getElementById('chatBox');
+// ── Render bot message ────────────────────────────────────────────────────────
+async function renderBot(text) {
   const hasAnime = /\[ANIME:\s*.+?\]/i.test(text);
-
-  // Split on [ANIME: ...] tokens
   const parts = text.split(/\[ANIME:\s*(.+?)\]/gi);
 
-  // Opening text (before first anime)
-  const openingText = parts[0].trim();
-  if (openingText) {
-    appendBotBubble(openingText, true);
-  }
+  // Opening text
+  const opening = parts[0].trim();
+  if (opening) addBotBubble(opening, true);
 
-  if (!hasAnime) {
-    // Plain conversational reply — no cards, no chips needed
-    scrollBottom();
-    return;
-  }
+  if (!hasAnime) { scrollBottom(); return; }
 
-  // Build pairs: [{title, description}]
+  // Build pairs
   const pairs = [];
-  lastRecommendedTitles = []; // reset for this round
+  lastTitles = [];
   for (let i = 1; i < parts.length; i += 2) {
     const title = parts[i].trim();
-    const rawAfter = (parts[i + 1] || '').trim();
-
-    // Separate the description from any closing line
-    const lines = rawAfter.split('\n').map(l => l.trim()).filter(Boolean);
-    const isClosing = l => /^(want|any|something|let me|sound|did|seen|how about|shall)/i.test(l);
-    const descLines = lines.filter(l => !isClosing(l));
-    const closingLines = lines.filter(l => isClosing(l));
-
-    pairs.push({
-      title,
-      description: descLines.join('\n'),
-      closing: i + 2 >= parts.length ? closingLines.join('\n') : ''
-    });
-    lastRecommendedTitles.push(title);
+    const raw = (parts[i + 1] || '').trim();
+    const lines = raw.split('\n').map(l => l.trim()).filter(Boolean);
+    const isCloser = l => /^(want|any|something|let me|sound|did|seen|how about|shall)/i.test(l);
+    const desc = lines.filter(l => !isCloser(l)).join('\n');
+    const closing = (i + 2 >= parts.length) ? lines.filter(l => isCloser(l)).join('\n') : '';
+    pairs.push({ title, desc, closing });
+    lastTitles.push(title);
   }
 
-  // Place loading placeholders + description bubbles
-  const cardPlaceholders = [];
+  // Place description bubbles + loading placeholders
+  const placeholders = [];
   for (let i = 0; i < pairs.length; i++) {
-    const { title, description } = pairs[i];
+    const { title, desc } = pairs[i];
+    if (desc) addBotBubble(desc, false);
 
-    if (description) {
-      appendBotBubble(description, false);
-    }
-
-    const placeholder = document.createElement('div');
-    placeholder.className = 'card-loading';
-    placeholder.style.cssText = 'width:100%;max-width:85%;align-self:flex-start;';
-    placeholder.textContent = `🔍 Looking up ${title}...`;
-    chatBox.appendChild(placeholder);
-    cardPlaceholders.push({ placeholder, title });
+    const ph = document.createElement('div');
+    ph.className = 'card-loading';
+    ph.textContent = `🔍 Looking up ${title}...`;
+    document.getElementById('msgs').appendChild(ph);
+    placeholders.push({ ph, title });
+    scrollBottom();
   }
 
-  scrollBottom();
-
-  // Render closing text after last card placeholder
-  const lastClosing = pairs[pairs.length - 1]?.closing;
-
-  // Fetch all cards in parallel
-  await Promise.all(cardPlaceholders.map(async ({ placeholder, title }) => {
-    const card = await fetchAnimeCard(title);
-    if (placeholder.parentNode) {
-      placeholder.parentNode.replaceChild(card, placeholder);
-    }
+  // Fetch cards with small stagger (Jikan rate limit: 3/sec)
+  await Promise.all(placeholders.map(async ({ ph, title }, i) => {
+    if (i > 0) await sleep(i * 380);
+    const card = await fetchCard(title);
+    if (ph.parentNode) ph.parentNode.replaceChild(card, ph);
     scrollBottom();
   }));
 
   // Closing line
+  const lastClosing = pairs[pairs.length - 1]?.closing;
   if (lastClosing) {
-    setTimeout(() => {
-      appendBotBubble(lastClosing, false);
-      scrollBottom();
-    }, 200);
+    await sleep(150);
+    addBotBubble(lastClosing, false);
+    scrollBottom();
   }
 
-  // Prompt chips — always show after a recommendation round
-  setTimeout(() => {
-    showChips([
-      '✨ More like these',
-      '🔀 Something different',
-      '👀 I\'ve seen these',
-      '🎬 Where to watch?'
-    ]);
-    scrollBottom();
-  }, lastClosing ? 500 : 250);
-}
-
-// ─── Prompt chips ─────────────────────────────────────────────────────────────
-function showChips(options) {
-  const chatBox = document.getElementById('chatBox');
-
-  // Remove any existing chips
-  const old = document.getElementById('promptChips');
-  if (old) old.remove();
-
-  const wrapper = document.createElement('div');
-  wrapper.className = 'chips-wrapper';
-  wrapper.id = 'promptChips';
-
-  options.forEach(label => {
-    const chip = document.createElement('button');
-    chip.className = 'chip';
-    chip.textContent = label;
-    chip.onclick = () => {
-      wrapper.remove();
-      if (label === '🎬 Where to watch?') {
-        showJustWatchLinks();
-      } else {
-        sendMessage(label);
-      }
-    };
-    wrapper.appendChild(chip);
-  });
-
-  chatBox.appendChild(wrapper);
-}
-
-// ─── Show JustWatch links inline (no Claude needed) ───────────────────────────
-function showJustWatchLinks() {
-  const chatBox = document.getElementById('chatBox');
-  if (!lastRecommendedTitles.length) return;
-
-  // Bot bubble intro
-  appendBotBubble('Here are the JustWatch links — just tap to check what\'s streaming in India right now 🎬', true);
-
-  // One card per title
-  const linksWrapper = document.createElement('div');
-  linksWrapper.style.cssText = 'display:flex;flex-direction:column;gap:8px;align-self:flex-start;width:100%;max-width:85%;';
-
-  lastRecommendedTitles.forEach(title => {
-    const jwUrl = `https://www.justwatch.com/in/search?q=${encodeURIComponent(title)}`;
-    const linkCard = document.createElement('a');
-    linkCard.href = jwUrl;
-    linkCard.target = '_blank';
-    linkCard.style.cssText = `
-      display:flex;align-items:center;gap:10px;
-      background:rgba(99,179,237,0.08);
-      border:1px solid rgba(99,179,237,0.2);
-      border-radius:12px;padding:10px 14px;
-      text-decoration:none;
-      transition:background 0.15s,border-color 0.15s;
-    `;
-    linkCard.innerHTML = `
-      <span style="font-size:18px;flex-shrink:0;">🎬</span>
-      <span style="flex:1;color:#fff;font-size:13px;font-weight:600;">${escHtml(title)}</span>
-      <span style="color:rgba(99,179,237,0.8);font-size:12px;">JustWatch →</span>
-    `;
-    linksWrapper.appendChild(linkCard);
-  });
-
-  chatBox.appendChild(linksWrapper);
+  // Chips
+  await sleep(lastClosing ? 400 : 200);
+  showChips(['✨ More like these', '🔀 Something different', '👀 I\'ve seen these', '🎬 Where to watch?']);
   scrollBottom();
 }
 
-// ─── AniList card fetch ───────────────────────────────────────────────────────
-async function fetchAnimeCard(title) {
+// ── Prompt chips ──────────────────────────────────────────────────────────────
+function showChips(options) {
+  const old = document.getElementById('chips');
+  if (old) old.remove();
+
+  const wrap = document.createElement('div');
+  wrap.className = 'chips';
+  wrap.id = 'chips';
+
+  options.forEach(label => {
+    const btn = document.createElement('button');
+    btn.className = 'chip';
+    btn.textContent = label;
+    btn.addEventListener('click', () => {
+      wrap.remove();
+      if (label === '🎬 Where to watch?') showJustWatch();
+      else sendMessage(label);
+    });
+    wrap.appendChild(btn);
+  });
+
+  document.getElementById('msgs').appendChild(wrap);
+}
+
+// ── JustWatch links ───────────────────────────────────────────────────────────
+function showJustWatch() {
+  if (!lastTitles.length) return;
+  addBotBubble('Tap any title to check what\'s streaming in India right now 🎬', true);
+
+  const wrap = document.createElement('div');
+  wrap.style.cssText = 'display:flex;flex-direction:column;gap:8px;width:90%;';
+
+  lastTitles.forEach(title => {
+    const url = `https://www.justwatch.com/in/search?q=${encodeURIComponent(title)}`;
+    const a = document.createElement('a');
+    a.className = 'jw-card';
+    a.href = url;
+    a.target = '_blank';
+    a.innerHTML = `<span style="font-size:17px;flex-shrink:0">🎬</span><span class="jw-title">${escHtml(title)}</span><span class="jw-arrow">Open →</span>`;
+    wrap.appendChild(a);
+  });
+
+  document.getElementById('msgs').appendChild(wrap);
+  scrollBottom();
+}
+
+// ── Fetch anime card (Jikan v4 → AniList → stub) ─────────────────────────────
+async function fetchCard(title) {
+  let anime = null;
+
+  // 1. Jikan v4
+  try {
+    const ctrl = new AbortController();
+    const t = setTimeout(() => ctrl.abort(), 6000);
+    const res = await fetch(
+      `https://api.jikan.moe/v4/anime?q=${encodeURIComponent(title)}&limit=1&sfw=true`,
+      { signal: ctrl.signal }
+    );
+    clearTimeout(t);
+    if (res.ok) {
+      const j = await res.json();
+      const a = j?.data?.[0];
+      if (a) anime = {
+        title:  a.title_english || a.title,
+        cover:  a.images?.jpg?.large_image_url || a.images?.jpg?.image_url || null,
+        score:  a.score ? `⭐ ${a.score.toFixed(1)}` : null,
+        eps:    a.episodes ? `${a.episodes} eps` : (a.status === 'Currently Airing' ? 'Airing' : null),
+        type:   a.type || null,
+        genres: (a.genres || []).slice(0, 3).map(g => g.name),
+        url:    a.url || null,
+        src:    'mal'
+      };
+    }
+  } catch (_) {}
+
+  // 2. AniList fallback
+  if (!anime) {
+    try {
+      const ctrl = new AbortController();
+      const t = setTimeout(() => ctrl.abort(), 6000);
+      const res = await fetch('https://graphql.anilist.co', {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json', 'Accept': 'application/json' },
+        body: JSON.stringify({
+          query: `query($s:String){Media(search:$s,type:ANIME,sort:SEARCH_MATCH){title{english romaji}coverImage{large}averageScore episodes format status genres siteUrl}}`,
+          variables: { s: title }
+        }),
+        signal: ctrl.signal
+      });
+      clearTimeout(t);
+      if (res.ok) {
+        const j = await res.json();
+        const a = j?.data?.Media;
+        if (a) anime = {
+          title:  a.title.english || a.title.romaji,
+          cover:  a.coverImage?.large || null,
+          score:  a.averageScore ? `⭐ ${(a.averageScore / 10).toFixed(1)}` : null,
+          eps:    a.episodes ? `${a.episodes} eps` : (a.status === 'RELEASING' ? 'Airing' : null),
+          type:   a.format || null,
+          genres: (a.genres || []).slice(0, 3),
+          url:    a.siteUrl || null,
+          src:    'anilist'
+        };
+      }
+    } catch (_) {}
+  }
+
+  return buildCard(title, anime);
+}
+
+function buildCard(searchTitle, a) {
   const card = document.createElement('div');
   card.className = 'anime-card';
-  // Explicit sizing so card renders correctly as a standalone element
-  card.style.cssText = 'width:100%;max-width:85%;align-self:flex-start;';
 
-  const query = `
-    query ($search: String) {
-      Media(search: $search, type: ANIME, sort: SEARCH_MATCH) {
-        title { english romaji }
-        coverImage { large }
-        averageScore
-        episodes
-        format
-        status
-        genres
-        siteUrl
-      }
-    }
-  `;
-
-  let anime = null;
-  try {
-    // 8 second timeout — AniList is fast but mobile connections vary
-    const controller = new AbortController();
-    const timeout = setTimeout(() => controller.abort(), 8000);
-
-    const res = await fetch('https://graphql.anilist.co', {
-      method: 'POST',
-      headers: {
-        'Content-Type': 'application/json',
-        'Accept': 'application/json'
-      },
-      body: JSON.stringify({ query, variables: { search: title } }),
-      signal: controller.signal
-    });
-
-    clearTimeout(timeout);
-    if (!res.ok) throw new Error(`AniList ${res.status}`);
-    const data = await res.json();
-    anime = data?.data?.Media || null;
-  } catch (err) {
-    anime = null; // fallback card below
-  }
-
-  if (!anime) {
-    // Fallback: show title + JustWatch link, still looks good
-    const jwUrl = `https://www.justwatch.com/in/search?q=${encodeURIComponent(title)}`;
-    card.innerHTML = `
-      <div class="anime-cover-placeholder">🎌</div>
-      <div class="anime-info">
-        <div class="anime-title">${escHtml(title)}</div>
-        <div style="font-size:11px;color:rgba(255,255,255,0.3);margin-top:4px;">Couldn't load details — trust Nami on this one!</div>
-        <div class="card-links">
-          <a class="card-link jw" href="${jwUrl}" target="_blank" onclick="event.stopPropagation()">🎬 Find on JustWatch →</a>
-        </div>
-      </div>
-    `;
-    card.onclick = (e) => { if (e.target.tagName !== 'A') askNamiAboutStreaming(title); };
-    return card;
-  }
-
-  const displayTitle = anime.title.english || anime.title.romaji;
-  const coverUrl = anime.coverImage?.large;
-  const score = anime.averageScore ? `⭐ ${(anime.averageScore / 10).toFixed(1)}` : null;
-  const eps = anime.episodes ? `${anime.episodes} eps`
-              : anime.status === 'RELEASING' ? 'Airing' : null;
-  const format = anime.format || null;
-  const genres = (anime.genres || []).slice(0, 3);
-  const anilistUrl = anime.siteUrl;
-  const jwUrl = `https://www.justwatch.com/in/search?q=${encodeURIComponent(displayTitle)}`;
+  const title = a?.title || searchTitle;
+  const jw = `https://www.justwatch.com/in/search?q=${encodeURIComponent(title)}`;
 
   card.innerHTML = `
-    ${coverUrl
-      ? `<img class="anime-cover" src="${coverUrl}" alt="${escHtml(displayTitle)}" loading="lazy"
-           onerror="this.style.display='none';this.nextElementSibling&&(this.nextElementSibling.style.display='flex')" />`
-      : ''
-    }
-    <div class="anime-cover-placeholder" style="${coverUrl ? 'display:none' : ''}">🎌</div>
-    <div class="anime-info">
-      <div class="anime-title">${escHtml(displayTitle)}</div>
-      <div class="anime-meta">
-        ${score ? `<span class="anime-badge badge-score">${score}</span>` : ''}
-        ${eps   ? `<span class="anime-badge badge-eps">${eps}</span>` : ''}
-        ${format? `<span class="anime-badge badge-type">${format}</span>` : ''}
+    ${a?.cover
+      ? `<img class="a-cover" src="${a.cover}" alt="${escHtml(title)}" loading="lazy"
+           onerror="this.style.display='none';this.nextElementSibling.style.display='flex'">`
+      : ''}
+    <div class="a-placeholder" style="${a?.cover ? 'display:none' : ''}">🎌</div>
+    <div class="a-info">
+      <div class="a-title">${escHtml(title)}</div>
+      <div class="a-meta">
+        ${a?.score ? `<span class="badge b-score">${a.score}</span>` : ''}
+        ${a?.eps   ? `<span class="badge b-eps">${a.eps}</span>` : ''}
+        ${a?.type  ? `<span class="badge b-type">${a.type}</span>` : ''}
       </div>
-      ${genres.length ? `<div class="anime-genres">${genres.map(g => `<span class="genre-tag">${escHtml(g)}</span>`).join('')}</div>` : ''}
-      <div class="card-links">
-        ${anilistUrl ? `<a class="card-link" href="${anilistUrl}" target="_blank" onclick="event.stopPropagation()">AniList →</a>` : ''}
-        <a class="card-link jw" href="${jwUrl}" target="_blank" onclick="event.stopPropagation()">🎬 JustWatch →</a>
+      ${a?.genres?.length ? `<div class="a-genres">${a.genres.map(g=>`<span class="genre-tag">${escHtml(g)}</span>`).join('')}</div>` : ''}
+      <div class="a-links">
+        ${a?.url ? `<a class="a-link" href="${a.url}" target="_blank" onclick="event.stopPropagation()">${a.src==='anilist'?'AniList →':'MAL →'}</a>` : ''}
+        <a class="a-link jw" href="${jw}" target="_blank" onclick="event.stopPropagation()">🎬 JustWatch →</a>
       </div>
-      <div class="card-tap-hint">Tap card → ask Nami where to stream</div>
-    </div>
-  `;
+      <div class="a-hint">Tap to ask Nami where to stream</div>
+    </div>`;
 
-  card.onclick = (e) => {
+  card.addEventListener('click', e => {
     if (e.target.tagName === 'A') return;
-    askNamiAboutStreaming(displayTitle);
-  };
+    askStreaming(title);
+  });
 
   return card;
 }
 
-// ─── Streaming question (on card tap) ────────────────────────────────────────
-async function askNamiAboutStreaming(title) {
-  if (isBusy) return;
+// ── Ask Nami about streaming ──────────────────────────────────────────────────
+async function askStreaming(title) {
+  if (busy) return;
+  const chips = document.getElementById('chips');
+  if (chips) chips.remove();
 
-  const existingChips = document.getElementById('promptChips');
-  if (existingChips) existingChips.remove();
-
-  const question = `Where can I stream ${title} in India?`;
-  addBubble('user', question);
-  conversationHistory.push({ role: 'user', content: question });
+  const q = `Where can I stream ${title} in India?`;
+  addBubble('user', q);
+  history.push({ role: 'user', content: q });
 
   setBusy(true);
   showThinking();
@@ -804,76 +741,72 @@ async function askNamiAboutStreaming(title) {
   setBusy(false);
 
   if (reply) {
-    conversationHistory.push({ role: 'assistant', content: reply });
-    await renderBotMessage(reply);
+    history.push({ role: 'assistant', content: reply });
+    await renderBot(reply);
   }
 }
 
-// ─── Helpers ──────────────────────────────────────────────────────────────────
-function setBusy(val) {
-  isBusy = val;
-  document.getElementById('sendBtn').disabled = val;
-}
-
-function appendBotBubble(text, showLabel) {
-  const chatBox = document.getElementById('chatBox');
-  const wrapper = document.createElement('div');
-  wrapper.className = 'msg-wrapper bot';
-  if (showLabel) {
-    const label = document.createElement('div');
-    label.className = 'msg-label';
-    label.textContent = 'nami';
-    wrapper.appendChild(label);
-  }
-  const bubble = document.createElement('div');
-  bubble.className = 'bubble bot';
-  bubble.textContent = text;
-  wrapper.appendChild(bubble);
-  chatBox.appendChild(wrapper);
-}
-
+// ── DOM helpers ───────────────────────────────────────────────────────────────
 function addBubble(role, text) {
-  const chatBox = document.getElementById('chatBox');
-  const wrapper = document.createElement('div');
-  wrapper.className = 'msg-wrapper ' + role;
-  const label = document.createElement('div');
-  label.className = 'msg-label';
-  label.textContent = role === 'user' ? 'you' : 'nami';
-  const bubble = document.createElement('div');
-  bubble.className = 'bubble ' + role;
-  bubble.textContent = text;
-  wrapper.appendChild(label);
-  wrapper.appendChild(bubble);
-  chatBox.appendChild(wrapper);
+  const msgs = document.getElementById('msgs');
+  const wrap = document.createElement('div');
+  wrap.className = 'mw ' + role;
+  const lbl = document.createElement('div');
+  lbl.className = 'mlabel';
+  lbl.textContent = role === 'user' ? 'you' : 'nami';
+  const bub = document.createElement('div');
+  bub.className = 'bubble ' + role;
+  bub.textContent = text;
+  wrap.appendChild(lbl);
+  wrap.appendChild(bub);
+  msgs.appendChild(wrap);
   scrollBottom();
+}
+
+function addBotBubble(text, showLabel) {
+  const msgs = document.getElementById('msgs');
+  const wrap = document.createElement('div');
+  wrap.className = 'mw bot';
+  if (showLabel) {
+    const lbl = document.createElement('div');
+    lbl.className = 'mlabel';
+    lbl.textContent = 'nami';
+    wrap.appendChild(lbl);
+  }
+  const bub = document.createElement('div');
+  bub.className = 'bubble bot';
+  bub.textContent = text;
+  wrap.appendChild(bub);
+  msgs.appendChild(wrap);
+}
+
+let thinkEl = null;
+function showThinking() {
+  const msgs = document.getElementById('msgs');
+  thinkEl = document.createElement('div');
+  thinkEl.className = 'thinking';
+  thinkEl.innerHTML = '<div class="dot"></div><div class="dot"></div><div class="dot"></div>';
+  msgs.appendChild(thinkEl);
+  scrollBottom();
+}
+function hideThinking() { if (thinkEl) { thinkEl.remove(); thinkEl = null; } }
+
+function setBusy(v) {
+  busy = v;
+  document.getElementById('send').disabled = v;
 }
 
 function scrollBottom() {
-  const chatBox = document.getElementById('chatBox');
-  chatBox.scrollTop = chatBox.scrollHeight;
+  const msgs = document.getElementById('msgs');
+  // requestAnimationFrame ensures DOM has painted before we scroll
+  requestAnimationFrame(() => { msgs.scrollTop = msgs.scrollHeight; });
 }
 
-function escHtml(str) {
-  return String(str)
-    .replace(/&/g, '&amp;')
-    .replace(/</g, '&lt;')
-    .replace(/>/g, '&gt;')
-    .replace(/"/g, '&quot;');
+function escHtml(s) {
+  return String(s).replace(/&/g,'&amp;').replace(/</g,'&lt;').replace(/>/g,'&gt;').replace(/"/g,'&quot;');
 }
 
-let thinkingEl = null;
-function showThinking() {
-  const chatBox = document.getElementById('chatBox');
-  thinkingEl = document.createElement('div');
-  thinkingEl.className = 'thinking';
-  thinkingEl.innerHTML = '<div class="dot"></div><div class="dot"></div><div class="dot"></div>';
-  chatBox.appendChild(thinkingEl);
-  scrollBottom();
-}
-function hideThinking() {
-  if (thinkingEl) { thinkingEl.remove(); thinkingEl = null; }
-}
+function sleep(ms) { return new Promise(r => setTimeout(r, ms)); }
 </script>
-
 </body>
 </html>
