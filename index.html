@@ -695,26 +695,40 @@ function buildCard(searchTitle, a) {
   const title = a?.title || searchTitle;
   const jw = `https://www.justwatch.com/in/search?q=${encodeURIComponent(title)}`;
 
-  card.innerHTML = `
-    ${a?.cover
-      ? `<img class="a-cover" src="${a.cover}" alt="${escHtml(title)}" loading="lazy"
-           onerror="this.style.display='none';this.nextElementSibling.style.display='flex'">`
-      : ''}
-    <div class="a-placeholder" style="${a?.cover ? 'display:none' : ''}">🎌</div>
-    <div class="a-info">
-      <div class="a-title">${escHtml(title)}</div>
-      <div class="a-meta">
-        ${a?.score ? `<span class="badge b-score">${a.score}</span>` : ''}
-        ${a?.eps   ? `<span class="badge b-eps">${a.eps}</span>` : ''}
-        ${a?.type  ? `<span class="badge b-type">${a.type}</span>` : ''}
-      </div>
-      ${a?.genres?.length ? `<div class="a-genres">${a.genres.map(g=>`<span class="genre-tag">${escHtml(g)}</span>`).join('')}</div>` : ''}
-      <div class="a-links">
-        ${a?.url ? `<a class="a-link" href="${a.url}" target="_blank" onclick="event.stopPropagation()">${a.src==='anilist'?'AniList →':'MAL →'}</a>` : ''}
-        <a class="a-link jw" href="${jw}" target="_blank" onclick="event.stopPropagation()">🎬 JustWatch →</a>
-      </div>
-      <div class="a-hint">Tap to ask Nami where to stream</div>
-    </div>`;
+  // Build structure with DOM API — no innerHTML + lazy loading issues
+  const placeholder = document.createElement('div');
+  placeholder.className = 'a-placeholder';
+  placeholder.textContent = '🎌';
+
+  const info = document.createElement('div');
+  info.className = 'a-info';
+  info.innerHTML = `
+    <div class="a-title">${escHtml(title)}</div>
+    <div class="a-meta">
+      ${a?.score ? `<span class="badge b-score">${a.score}</span>` : ''}
+      ${a?.eps   ? `<span class="badge b-eps">${a.eps}</span>` : ''}
+      ${a?.type  ? `<span class="badge b-type">${a.type}</span>` : ''}
+    </div>
+    ${a?.genres?.length ? `<div class="a-genres">${a.genres.map(g => `<span class="genre-tag">${escHtml(g)}</span>`).join('')}</div>` : ''}
+    <div class="a-links">
+      ${a?.url ? `<a class="a-link" href="${a.url}" target="_blank" onclick="event.stopPropagation()">${a.src === 'anilist' ? 'AniList →' : 'MAL →'}</a>` : ''}
+      <a class="a-link jw" href="${jw}" target="_blank" onclick="event.stopPropagation()">🎬 JustWatch →</a>
+    </div>
+    <div class="a-hint">Tap to ask Nami where to stream</div>`;
+
+  card.appendChild(placeholder);
+  card.appendChild(info);
+
+  // Load image via JS — no lazy loading attr, fires immediately
+  if (a?.cover) {
+    const img = document.createElement('img');
+    img.className = 'a-cover';
+    img.alt = title;
+    img.onerror = () => { img.style.display = 'none'; placeholder.style.display = 'flex'; };
+    img.onload  = () => { placeholder.style.display = 'none'; };
+    card.insertBefore(img, placeholder);
+    img.src = a.cover; // set src AFTER attaching to DOM and setting handlers
+  }
 
   card.addEventListener('click', e => {
     if (e.target.tagName === 'A') return;
